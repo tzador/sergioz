@@ -1,3 +1,5 @@
+import dimensions from './dimensions.json'
+
 export const languages = ['en', 'el', 'ua'] as const
 export type Language = (typeof languages)[number]
 export type Translated<T = string> = Record<Language, T>
@@ -797,6 +799,12 @@ export const pictures: Picture[] = [
     hidden: true,
   },
 ]
+
+/** Pixel size of the full image in public/pictures (from `bun run dimensions`) */
+export function pixelSize(id: string): [number, number] {
+  const size = (dimensions as Record<string, number[]>)[id]
+  return [size[0], size[1]]
+}
 
 export function getPicture(id: string): Picture | undefined {
   return pictures.find((picture) => picture.id === id)

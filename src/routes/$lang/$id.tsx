@@ -1,6 +1,7 @@
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { bio, defaultLanguage, getPicture, isLanguage, pictureCaption, pictureDimensions, pictures } from '../../pictures'
+import type { CSSProperties } from 'react'
+import { bio, defaultLanguage, getPicture, isLanguage, pictureCaption, pictureDimensions, pictures, pixelSize } from '../../pictures'
 import { strings } from '../../strings'
 
 const gallery = pictures.filter((picture) => !picture.hidden)
@@ -31,6 +32,7 @@ function Detail() {
   const navigate = useNavigate()
   const caption = pictureCaption(picture, lang)
   const dimensions = pictureDimensions(picture, lang)
+  const [width, height] = pixelSize(picture.id)
 
   // match by id: loader data is serialized, so `picture` isn't the same object as the one in `gallery`
   const index = gallery.findIndex((p) => p.id === picture.id)
@@ -63,13 +65,9 @@ function Detail() {
 
       <figure className="polaroid polaroid--large">
         <span className="tape" aria-hidden />
-        <div className="polaroid-photo measured">
-          <img
-            key={picture.id}
-            src={`/pictures/${picture.id}.JPG`}
-            alt={caption.title}
-            style={{ backgroundImage: `url(/thumbs/${picture.id}.JPG)` }}
-          />
+        <div className="polaroid-photo measured" style={{ '--ratio': width / height } as CSSProperties}>
+          <img src={`/thumbs/${picture.id}.JPG`} alt="" aria-hidden />
+          <img key={picture.id} src={`/pictures/${picture.id}.JPG`} width={width} height={height} alt={caption.title} />
           <span className="dim dim--width" aria-hidden>
             <span>{dimensions.width}</span>
           </span>

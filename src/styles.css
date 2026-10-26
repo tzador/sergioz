@@ -502,14 +502,23 @@ img {
 
 .polaroid--large {
   --pad: 18px;
+  --max-width: calc(100vw - 2 * var(--gutter) - 2 * var(--pad) - 72px);
+  --max-height: max(320px, min(100vh - 290px, 1100px));
   width: min-content;
 }
 
-.polaroid--large .polaroid-photo img {
-  width: auto;
-  max-width: calc(100vw - 2 * var(--gutter) - 2 * var(--pad) - 72px);
-  max-height: max(320px, min(100vh - 290px, 1100px));
-  background-size: cover;
+/* sized from the picture's known aspect ratio, so the box is right before any image bytes arrive */
+.measured {
+  width: min(var(--max-width), calc(var(--max-height) * var(--ratio)));
+  aspect-ratio: var(--ratio);
+}
+
+/* the full image draws over the (usually cached) thumbnail as it downloads */
+.measured img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .polaroid--large .polaroid-caption {
@@ -687,8 +696,8 @@ img {
     --pad: 10px;
   }
 
-  .polaroid--large .polaroid-photo img {
-    max-width: calc(100vw - 2 * var(--gutter) - 2 * var(--pad));
+  .polaroid--large {
+    --max-width: calc(100vw - 2 * var(--gutter) - 2 * var(--pad));
   }
 
   .detail-nav {

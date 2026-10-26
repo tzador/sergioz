@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import type { CSSProperties } from 'react'
-import { bio, defaultLanguage, exhibitions, isLanguage, pictureCaption, pictures } from '../../pictures'
+import { bio, defaultLanguage, exhibitions, isLanguage, pictureCaption, pictures, pixelSize } from '../../pictures'
 import { strings } from '../../strings'
 
 const gallery = pictures.filter((picture) => !picture.hidden)
@@ -57,11 +57,18 @@ function Gallery() {
         <ul className="gallery">
           {gallery.map((picture, index) => {
             const caption = pictureCaption(picture, lang)
+            const [width, height] = pixelSize(picture.id)
             return (
               <li key={picture.id} style={{ '--tilt': tilt(index) } as CSSProperties}>
                 <Link to="/$lang/$id" params={{ lang, id: picture.id }} className="polaroid">
                   <div className="polaroid-photo">
-                    <img src={`/thumbs/${picture.id}.JPG`} alt={caption.title} loading={index < 8 ? 'eager' : 'lazy'} />
+                    <img
+                      src={`/thumbs/${picture.id}.JPG`}
+                      width={300}
+                      height={Math.round((300 * height) / width)}
+                      alt={caption.title}
+                      loading={index < 8 ? 'eager' : 'lazy'}
+                    />
                   </div>
                   <div className="polaroid-caption">
                     <span className="caption-title">{caption.title}</span>
