@@ -1,3 +1,9 @@
 node_modules
+dist
+.output
+.wrangler
+.tanstack
+.dev.vars*
+.env*
+*.local
 .DS_Store
-
