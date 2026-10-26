@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1f1c18">
+<title>3D gallery</title>
+<style>
+  :root {
+    --paper: #f2ede3;
+    --ink: #1f1c18;
+    --accent: #b2432c;
+    --muted: #8a8173;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: Georgia, 'Times New Roman', serif;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1f1c18; color: var(--paper); font-family: var(--serif); -webkit-user-select: none; user-select: none; }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+  #brand { position: fixed; top: 18px; left: 20px; color: rgba(242, 237, 227, .8); text-decoration: none; }
+  #brand:hover { color: var(--paper); }
+  #map { position: fixed; top: 16px; right: 16px; opacity: .9; pointer-events: none; border: 1px solid rgba(242, 237, 227, .25); background: rgba(31, 28, 24, .6); }
+  #map.hidden { display: none; }
+  #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: rgba(242, 237, 227, .85); box-shadow: 0 0 0 1px rgba(31, 28, 24, .5); pointer-events: none; transition: transform .15s, opacity .2s; }
+  #crosshair.hot { transform: scale(1.8); background: var(--accent); }
+  #crosshair.hidden { opacity: 0; }
+  #caption { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); width: max-content; max-width: min(640px, calc(100vw - 32px)); padding: 14px 20px 12px; background: rgba(251, 249, 244, .96); color: var(--ink); box-shadow: 0 14px 30px -14px rgba(0, 0, 0, .7); opacity: 0; transition: opacity .2s; pointer-events: none; text-align: center; }
+  #caption.show { opacity: 1; }
+  #caption .title { font-style: italic; font-size: 20px; line-height: 1.25; }
+  #caption .details { margin-top: 6px; color: var(--muted); }
+  #caption .num { color: var(--accent); margin-left: 12px; }
+  #caption .hint { margin-top: 10px; color: var(--muted); font-size: 10px; }
+  #help { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 16px; color: rgba(242, 237, 227, .85); background: rgba(31, 28, 24, .55); text-align: center; line-height: 1.6; pointer-events: none; transition: opacity .6s; }
+  #help.hidden { opacity: 0; }
+  #progress { position: fixed; left: 20px; bottom: 20px; color: rgba(242, 237, 227, .6); pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="map"></canvas>
+<div id="crosshair"></div>
+<a id="brand" class="mono" href="/"></a>
+<div id="caption"><div class="title"></div><div class="details mono"></div><div class="hint mono"></div></div>
+<div id="help" class="mono"></div>
+<div id="progress" class="mono"></div>
+<script id="data" type="application/json">{"name":{"en":"SERHIY ZADOROZHNY","el":"ΣΕΡΓΚΙΪ ΖΑΝΤΟΡΟΖΝΙ","ua":"СЕРГІЙ ЗАДОРОЖНИЙ"},"strings":{"title":{"en":"3D gallery","el":"Τρισδιάστατη γκαλερί","ua":"3D-галерея"},"controls":{"en":"Walk: ↑ ↓ · Turn: ← → · Look closer: Enter · Step back: Esc · Map: M","el":"Περπάτημα: ↑ ↓ · Στροφή: ← → · Πιο κοντά: Enter · Πίσω: Esc · Χάρτης: M","ua":"Рух: ↑ ↓ · Поворот: ← → · Ближче: Enter · Назад: Esc · Мапа: M"},"controlsTouch":{"en":"Drag up or down to walk · Drag left or right to turn · Tap a painting to look closer","el":"Σύρετε πάνω ή κάτω για περπάτημα · Σύρετε αριστερά ή δεξιά για στροφή · Πατήστε ένα έργο για να το δείτε από κοντά","ua":"Тягніть вгору чи вниз, щоб іти · Вліво чи вправо, щоб повернутися · Торкніться картини, щоб роздивитися"},"lookCloser":{"en":"Enter — look closer","el":"Enter — πιο κοντά","ua":"Enter — роздивитися"},"lookCloserTouch":{"en":"Tap to look closer","el":"Πατήστε για πιο κοντά","ua":"Торкніться, щоб роздивитися"},"stepBack":{"en":"Esc — step back · ↑ ↓ — zoom","el":"Esc — πίσω · ↑ ↓ — ζουμ","ua":"Esc — назад · ↑ ↓ — масштаб"},"stepBackTouch":{"en":"Tap to step back","el":"Πατήστε για να απομακρυνθείτε","ua":"Торкніться, щоб відійти"},"loading":{"en":"Loading","el":"Φόρτωση","ua":"Завантаження"},"noWebgl":{"en":"This browser cannot show the 3D gallery (WebGL 2 is not available).","el":"Αυτό το πρόγραμμα περιήγησης δεν μπορεί να δείξει την τρισδιάστατη γκαλερί (δεν υπάρχει WebGL 2).","ua":"Цей браузер не може показати 3D-галерею (WebGL 2 недоступний)."}},"pictures":[{"id":"01","size":[60,60],"px":[2173,2173],"captions":{"en":{"title":"From the series “MONSTERS OF THE MELON PATCH”. 2019","details":"oil on canvas. 60×60 cm"},"el":{"title":"Από τη σειρά «ΤΑ ΤΕΡΑΤΑ ΤΟΥ ΜΠΟΣΤΑΝΙΟΥ». 2019","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"З серії “МОНСТРИ БАШТАНУ”. 2019 р.","details":"полотно, олія. 60×60 см"}}},{"id":"02","size":[60,60],"px":[2216,2217],"captions":{"en":{"title":"From the series “MONSTERS OF THE MELON PATCH”. 2019","details":"oil on canvas. 60×60 cm"},"el":{"title":"Από τη σειρά «ΤΑ ΤΕΡΑΤΑ ΤΟΥ ΜΠΟΣΤΑΝΙΟΥ». 2019","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"З серії “МОНСТРИ БАШТАНУ”. 2019 р.","details":"полотно, олія. 60×60 см"}}},{"id":"03","size":[60,60],"px":[2223,2223],"captions":{"en":{"title":"From the series “MONSTERS OF THE MELON PATCH”. 2019","details":"oil on canvas. 60×60 cm"},"el":{"title":"Από τη σειρά «ΤΑ ΤΕΡΑΤΑ ΤΟΥ ΜΠΟΣΤΑΝΙΟΥ». 2019","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"З серії “МОНСТРИ БАШТАНУ”. 2019 р.","details":"полотно, олія. 60×60 см"}}},{"id":"04","size":[60,60],"px":[2199,2199],"captions":{"en":{"title":"From the series “MONSTERS OF THE MELON PATCH”. 2019","details":"oil on canvas. 60×60 cm"},"el":{"title":"Από τη σειρά «ΤΑ ΤΕΡΑΤΑ ΤΟΥ ΜΠΟΣΤΑΝΙΟΥ». 2019","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"З серії “МОНСТРИ БАШТАНУ”. 2019 р.","details":"полотно, олія. 60×60 см"}}},{"id":"05","size":[60,60],"px":[2227,2226],"captions":{"en":{"title":"From the series “MONSTERS OF THE MELON PATCH”. 2019","details":"oil on canvas. 60×60 cm"},"el":{"title":"Από τη σειρά «ΤΑ ΤΕΡΑΤΑ ΤΟΥ ΜΠΟΣΤΑΝΙΟΥ». 2019","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"З серії “МОНСТРИ БАШТАНУ”. 2019 р.","details":"полотно, олія. 60×60 см"}}},{"id":"08","size":[149,84],"px":[3674,2076],"captions":{"en":{"title":"A DISTANT BEACH, A DISTANT SUMMER. 2018","details":"oil on canvas. 149×84 cm"},"el":{"title":"ΜΑΚΡΙΝΗ ΠΑΡΑΛΙΑ, ΜΑΚΡΙΝΟ ΚΑΛΟΚΑΙΡΙ. 2018","details":"λάδι σε καμβά. 149×84 εκ."},"ua":{"title":"ДАЛЕКИЙ ПЛЯЖ, ДАЛЕКЕ ЛІТО. 2018 р.","details":"полотно, олія. 149×84 см"}}},{"id":"06","size":[29,23],"px":[1942,1604],"captions":{"en":{"title":"BY THE BANK OF THE DNIPRO. 1972","details":"watercolor on paper. 29×23 cm"},"el":{"title":"ΣΤΗΝ ΟΧΘΗ ΤΟΥ ΔΝΙΠΡΟΥ. 1972","details":"ακουαρέλα σε χαρτί. 29×23 εκ."},"ua":{"title":"ПРИ БЕРЕЗІ ДНІПРА. 1972 р.","details":"папір, акварель. 29×23 см"}}},{"id":"07","size":[29,23],"px":[1872,1468],"captions":{"en":{"title":"AT THE LANDING STAGE. KYIV. 1972","details":"watercolor on paper. 29×23 cm"},"el":{"title":"ΣΤΗΝ ΑΠΟΒΑΘΡΑ. ΚΙΕΒΟ. 1972","details":"ακουαρέλα σε χαρτί. 29×23 εκ."},"ua":{"title":"НА ДЕБАРКАДЕРІ. КИЇВ. 1972 р.","details":"папір, акварель. 29×23 см"}}},{"id":"09","size":[46,34],"px":[3524,2562],"captions":{"en":{"title":"AUGUST IN THE KYIV REGION. 1988","details":"watercolor on paper. 46×34 cm"},"el":{"title":"ΑΥΓΟΥΣΤΟΣ ΣΤΗΝ ΠΕΡΙΟΧΗ ΤΟΥ ΚΙΕΒΟΥ. 1988","details":"ακουαρέλα σε χαρτί. 46×34 εκ."},"ua":{"title":"СЕРПЕНЬ НА КИЇВЩИНІ. 1988 р.","details":"папір, акварель. 46×34 см"}}},{"id":"10","size":[46,34],"px":[2628,2089],"captions":{"en":{"title":"FORTRESS RUINS. Stare Selo. 2012","details":"watercolor on paper. 46×34 cm"},"el":{"title":"ΕΡΕΙΠΙΑ ΦΡΟΥΡΙΟΥ. Στάρε Σέλο. 2012","details":"ακουαρέλα σε χαρτί. 46×34 εκ."},"ua":{"title":"РУЇНИ ФОРТЕЦІ. Старе Село. 2012 р.","details":"папір, акварель. 46×34 см"}}},{"id":"11","size":[49,56],"px":[2195,2535],"captions":{"en":{"title":"GIFTS OF SEPTEMBER – 1. 2018","details":"watercolor on paper. 49×56 cm"},"el":{"title":"ΔΩΡΑ ΤΟΥ ΣΕΠΤΕΜΒΡΗ – 1. 2018","details":"ακουαρέλα σε χαρτί. 49×56 εκ."},"ua":{"title":"ДАРИ ВЕРЕСНЯ – 1. 2018 р.","details":"папір, акварель. 49×56 см"}}},{"id":"12","size":[49,56],"px":[2262,2595],"captions":{"en":{"title":"GIFTS OF SEPTEMBER – 2. 2018","details":"watercolor on paper. 49×56 cm"},"el":{"title":"ΔΩΡΑ ΤΟΥ ΣΕΠΤΕΜΒΡΗ – 2. 2018","details":"ακουαρέλα σε χαρτί. 49×56 εκ."},"ua":{"title":"ДАРИ ВЕРЕСНЯ – 2. 2018 р.","details":"папір, акварель. 49×56 см"}}},{"id":"13","size":[60,60],"px":[2518,2518],"captions":{"en":{"title":"STILL LIFE WITH A SAMOVAR. 2013","details":"oil on canvas. 60×60 cm"},"el":{"title":"ΝΕΚΡΗ ΦΥΣΗ ΜΕ ΣΑΜΟΒΑΡΙ. 2013","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"НАТЮРМОРТ З САМОВАРОМ. 2013 р.","details":"полотно, олія. 60×60 см"}}},{"id":"14","size":[45.5,33.5],"px":[3300,2357],"captions":{"en":{"title":"KYIV LILAC. 1981","details":"watercolor on paper. 45.5×33.5 cm"},"el":{"title":"ΠΑΣΧΑΛΙΑ ΤΟΥ ΚΙΕΒΟΥ. 1981","details":"ακουαρέλα σε χαρτί. 45,5×33,5 εκ."},"ua":{"title":"КИЇВСЬКИЙ БУЗОК. 1981 р.","details":"папір, акварель. 45,5×33,5 см"}}},{"id":"60","size":[30,40],"px":[1694,2461],"captions":{"en":{"title":"TYMISH. Portrait of my son. 1994","details":"pencil on paper. 30×40 cm"},"el":{"title":"ΤΙΜΙΣ. Πορτρέτο του γιου μου. 1994","details":"μολύβι σε χαρτί. 30×40 εκ."},"ua":{"title":"ТИМІШ. Портрет сина. 1994 р.","details":"папір, олівець. 30×40 см"}}},{"id":"16","size":[60,40],"px":[3949,2637],"captions":{"en":{"title":"NATURE MORTE (HEN). 2017","details":"watercolor on paper. 60×40 cm"},"el":{"title":"ΝΑΤΟΥΡ ΜΟΡΤ (ΚΟΤΑ). 2017","details":"ακουαρέλα σε χαρτί. 60×40 εκ."},"ua":{"title":"МЕРТВА НАТУРА (КУРКА). 2017 р.","details":"папір, акварель. 60×40 см"}}},{"id":"17","size":[120,90],"px":[4194,2776],"captions":{"en":{"title":"PROMENADE (DEMOBBED SOLDIER). 2015","details":"oil on canvas. 120×90 cm"},"el":{"title":"ΠΕΡΙΠΑΤΟΣ (ΑΠΟΛΥΜΕΝΟΣ ΦΑΝΤΑΡΟΣ). 2015","details":"λάδι σε καμβά. 120×90 εκ."},"ua":{"title":"ПРОМЕНАД (ДЕМБЕЛЬ). 2015 р.","details":"полотно, олія. 120×90 см"}}},{"id":"18","size":[150,150],"px":[1857,1857],"captions":{"en":{"title":"COLLISION (RIDE OF THE VALKYRIES). 2017","details":"oil on canvas. 150×150 cm"},"el":{"title":"ΣΥΓΚΡΟΥΣΗ (Η ΙΠΠΑΣΙΑ ΤΩΝ ΒΑΛΚΥΡΙΩΝ). 2017","details":"λάδι σε καμβά. 150×150 εκ."},"ua":{"title":"ЗІТКНЕННЯ (ПОЛІТ ВАЛЬКІРІЙ). 2017 р.","details":"полотно, олія. 150×150 см"}}},{"id":"19","size":[30,27],"px":[2580,2329],"captions":{"en":{"title":"DRIZZLE IN THE CARPATHIANS. 1990","details":"watercolor on paper. 30×27 cm"},"el":{"title":"ΨΙΧΑΛΑ ΣΤΑ ΚΑΡΠΑΘΙΑ. 1990","details":"ακουαρέλα σε χαρτί. 30×27 εκ."},"ua":{"title":"ДОЩИК В КАРПАТАХ. 1990 р.","details":"папір, акварель. 30×27 см"}}},{"id":"20","size":[50,60],"px":[2115,2528],"captions":{"en":{"title":"PEACHES ON MARBLE. 1995","details":"oil on canvas. 50×60 cm"},"el":{"title":"ΡΟΔΑΚΙΝΑ ΣΕ ΜΑΡΜΑΡΟ. 1995","details":"λάδι σε καμβά. 50×60 εκ."},"ua":{"title":"ПЕРСИКИ НА МАРМУРІ. 1995 р.","details":"полотно, олія. 50×60 см"}}},{"id":"21","size":[61,70],"px":[2657,3014],"captions":{"en":{"title":"RED PUMPKIN. 2012","details":"oil on canvas. 61×70 cm"},"el":{"title":"ΚΟΚΚΙΝΗ ΚΟΛΟΚΥΘΑ. 2012","details":"λάδι σε καμβά. 61×70 εκ."},"ua":{"title":"ЧЕРВОНИЙ ГАРБУЗ. 2012 р.","details":"полотно, олія. 61×70 см"}}},{"id":"22","size":[65,70],"px":[2732,2962],"captions":{"en":{"title":"LILAC ON TREE STUMPS. 2013","details":"oil on canvas. 65×70 cm"},"el":{"title":"ΠΑΣΧΑΛΙΑ ΣΕ ΚΟΡΜΟΥΣ. 2013","details":"λάδι σε καμβά. 65×70 εκ."},"ua":{"title":"БУЗОК НА ПНЯХ. 2013 р.","details":"полотно, олія. 65×70 см"}}},{"id":"23","size":[60,80],"px":[2847,3954],"captions":{"en":{"title":"CERAMICS, BRONZE, VEGETABLES. 2014","details":"oil on canvas. 60×80 cm"},"el":{"title":"ΚΕΡΑΜΙΚΑ, ΜΠΡΟΥΤΖΟΣ, ΛΑΧΑΝΙΚΑ. 2014","details":"λάδι σε καμβά. 60×80 εκ."},"ua":{"title":"КЕРАМІКА, БРОНЗА, ОВОЧІ. 2014 р.","details":"полотно, олія. 60×80 см"}}},{"id":"24","size":[60,60],"px":[2650,2650],"captions":{"en":{"title":"SUNFLOWERS ON OLD BRICKS. 2008","details":"oil on canvas. 60×60 cm"},"el":{"title":"ΗΛΙΟΤΡΟΠΙΑ ΣΕ ΠΑΛΙΑ ΤΟΥΒΛΑ. 2008","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"СОНЯШНИКИ НА СТАРИХ ЦЕГЛАХ. 2008 р.","details":"полотно, олія. 60×60 см"}}},{"id":"25","size":[70,50],"px":[3166,2288],"captions":{"en":{"title":"LVIV LILAC. 2015","details":"oil on canvas. 70×50 cm"},"el":{"title":"ΠΑΣΧΑΛΙΑ ΤΟΥ ΛΒΙΒ. 2015","details":"λάδι σε καμβά. 70×50 εκ."},"ua":{"title":"ЛЬВІВСЬКИЙ БУЗОК. 2015 р.","details":"полотно, олія. 70×50 см"}}},{"id":"26","size":[45,50],"px":[2398,2846],"captions":{"en":{"title":"DELICIOUS GREEN MELONS. 2017","details":"watercolor on paper. 45×50 cm"},"el":{"title":"ΝΟΣΤΙΜΑ ΠΡΑΣΙΝΑ ΠΕΠΟΝΙΑ. 2017","details":"ακουαρέλα σε χαρτί. 45×50 εκ."},"ua":{"title":"СМАЧНІ ЗЕЛЕНІ ДИНІ. 2017 р.","details":"папір, акварель. 45×50 см"}}},{"id":"27","size":[20,36],"px":[1102,2097],"captions":{"en":{"title":"AUTUMN STUDY. 1991","details":"watercolor on paper. 20×36 cm"},"el":{"title":"ΦΘΙΝΟΠΩΡΙΝΗ ΣΠΟΥΔΗ. 1991","details":"ακουαρέλα σε χαρτί. 20×36 εκ."},"ua":{"title":"ОСІННІЙ ЕТЮД. 1991 р.","details":"папір, акварель. 20×36 см"}}},{"id":"59","size":[19,28],"px":[1832,2734],"captions":{"en":{"title":"NATALKA AGAINST THE LIGHT. 1981","details":"oil on cardboard. 19×28 cm"},"el":{"title":"Η ΝΑΤΑΛΚΑ ΚΟΝΤΡΑ ΣΤΟ ΦΩΣ. 1981","details":"λάδι σε χαρτόνι. 19×28 εκ."},"ua":{"title":"НАТАЛКА В КОНТРАЖУРІ. 1981 р.","details":"картон, олія. 19×28 см"}}},{"id":"15","size":[32.3,42],"px":[2073,2712],"captions":{"en":{"title":"STILL LIFE WITH A MILK JUG. 1981","details":"watercolor on paper. 32.3×42 cm"},"el":{"title":"ΝΕΚΡΗ ΦΥΣΗ ΜΕ ΓΑΛΑΤΙΕΡΑ. 1981","details":"ακουαρέλα σε χαρτί. 32,3×42 εκ."},"ua":{"title":"НАТЮРМОРТ З МОЛОЧНИКОМ. 1981 р.","details":"папір, акварель. 32,3×42 см"}}},{"id":"28","size":[70,70],"px":[2531,2532],"captions":{"en":{"title":"OLD PRIMUS STOVES. 2016","details":"oil on canvas. 70×70 cm"},"el":{"title":"ΠΑΛΙΕΣ ΓΚΑΖΙΕΡΕΣ. 2016","details":"λάδι σε καμβά. 70×70 εκ."},"ua":{"title":"СТАРІ ПРИМУСИ. 2016 р.","details":"полотно, олія. 70×70 см"}}},{"id":"29","size":[50,50],"px":[2687,2687],"captions":{"en":{"title":"FISH AMONG BOTTLES. 2016","details":"oil on canvas. 50×50 cm"},"el":{"title":"ΨΑΡΙΑ ΑΝΑΜΕΣΑ ΣΕ ΜΠΟΥΚΑΛΙΑ. 2016","details":"λάδι σε καμβά. 50×50 εκ."},"ua":{"title":"РИБИ ПОМІЖ ПЛЯШОК. 2016 р.","details":"полотно, олія. 50×50 см"}}},{"id":"30","size":[39,29],"px":[2842,2166],"captions":{"en":{"title":"A CORNER OF A VILLAGE YARD. 2017","details":"watercolor on paper. 39×29 cm"},"el":{"title":"ΓΩΝΙΑ ΧΩΡΙΑΤΙΚΗΣ ΑΥΛΗΣ. 2017","details":"ακουαρέλα σε χαρτί. 39×29 εκ."},"ua":{"title":"КУТОЧОК СІЛЬСЬКОГО ПОДВІР’Я. 2017 р.","details":"папір, акварель. 39×29 см"}}},{"id":"31","size":[240,150],"px":[3355,2068],"captions":{"en":{"title":"PREMONITION. 2013","details":"oil on canvas. 240×150 cm"},"el":{"title":"ΠΡΟΑΙΣΘΗΜΑ. 2013","details":"λάδι σε καμβά. 240×150 εκ."},"ua":{"title":"ПЕРЕДЧУТТЯ. 2013 р.","details":"полотно, олія. 240×150 см"}}},{"id":"34","size":[40,30],"px":[2930,2174],"captions":{"en":{"title":"THE ISLAND OF CRETE. MORNING. 1996","details":"watercolor on paper. 40×30 cm"},"el":{"title":"ΤΟ ΝΗΣΙ ΤΗΣ ΚΡΗΤΗΣ. ΠΡΩΙ. 1996","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"ОСТРІВ КРИТ. РАНОК. 1996 р.","details":"папір, акварель. 40×30 см"}}},{"id":"35","size":[40,30],"px":[1007,756],"captions":{"en":{"title":"RUINED WINDMILL. Crete. 1996","details":"watercolor on paper. 40×30 cm"},"el":{"title":"ΕΡΕΙΠΩΜΕΝΟΣ ΑΝΕΜΟΜΥΛΟΣ. Κρήτη. 1996","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"РУЇНА ВІТРЯКА. Острів Крит. 1996 р.","details":"папір, акварель. 40×30 см"}}},{"id":"36","size":[60,60],"px":[2913,2904],"captions":{"en":{"title":"MY MOTHER’S SHOES AND MINE. 2017","details":"acrylic on paper. 60×60 cm"},"el":{"title":"ΤΑ ΠΑΠΟΥΤΣΙΑ ΤΗΣ ΜΑΝΑΣ ΜΟΥ ΚΑΙ ΤΑ ΔΙΚΑ ΜΟΥ. 2017","details":"ακρυλικό σε χαρτί. 60×60 εκ."},"ua":{"title":"ВЗУТТЯ МАМИНЕ І МОЄ. 2017 р.","details":"папір, акрил. 60×60 см"}}},{"id":"37","size":[40,30],"px":[1325,972],"captions":{"en":{"title":"VIEW OF PSEIRA ISLAND. Crete. 1998","details":"watercolor on paper. 40×30 cm"},"el":{"title":"ΘΕΑ ΣΤΗ ΝΗΣΟ ΨΕΙΡΑ. Κρήτη. 1998","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"ВИД НА о.ПСІРА. Крит. 1998 р.","details":"папір, акварель. 40×30 см"}}},{"id":"38","size":[40,30],"px":[1178,859],"captions":{"en":{"title":"THE TOWN OF AGIOS NIKOLAOS. Crete. 1999","details":"watercolor on paper. 40×30 cm"},"el":{"title":"Η ΠΟΛΗ ΤΟΥ ΑΓΙΟΥ ΝΙΚΟΛΑΟΥ. Κρήτη. 1999","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"МІСТО АГІОС НІКОЛАОС. Крит. 1999 р.","details":"папір, акварель. 40×30 см"}}},{"id":"39","size":[120,90],"px":[2280,1640],"captions":{"en":{"title":"CRETAN LANDSCAPE. 2012","details":"oil on canvas. 120×90 cm"},"el":{"title":"ΚΡΗΤΙΚΟ ΤΟΠΙΟ. 2012","details":"λάδι σε καμβά. 120×90 εκ."},"ua":{"title":"КРИТСЬКИЙ КРАЄВИД. 2012 р.","details":"полотно, олія. 120×90 см"}}},{"id":"40","size":[30,20],"px":[2835,2033],"captions":{"en":{"title":"WILD BEACH. Crete. 2001","details":"watercolor on paper. 30×20 cm"},"el":{"title":"ΑΓΡΙΑ ΠΑΡΑΛΙΑ. Κρήτη. 2001","details":"ακουαρέλα σε χαρτί. 30×20 εκ."},"ua":{"title":"ДИКИЙ ПЛЯЖ. Крит. 2001 р.","details":"папір, акварель. 30×20 см"}}},{"id":"41","size":[150,150],"px":[2163,2162],"captions":{"en":{"title":"ON THE RUG. 2018","details":"oil on canvas. 150×150 cm"},"el":{"title":"ΣΤΟ ΧΑΛΑΚΙ. 2018","details":"λάδι σε καμβά. 150×150 εκ."},"ua":{"title":"НА КОЦИКУ. 2018 р.","details":"полотно, олія. 150×150 см"}}},{"id":"42","size":[60,50],"px":[1850,1549],"captions":{"en":{"title":"MELON, PUMPKIN, APPLES. 2016","details":"oil on canvas. 60×50 cm"},"el":{"title":"ΠΕΠΟΝΙ, ΚΟΛΟΚΥΘΑ, ΜΗΛΑ. 2016","details":"λάδι σε καμβά. 60×50 εκ."},"ua":{"title":"ДИНЯ, ГАРБУЗ, ЯБЛУКА. 2016 р.","details":"полотно, олія. 60×50 см"}}},{"id":"43","size":[30,20],"px":[3303,2493],"captions":{"en":{"title":"CARPATHIAN FOOTHILLS. 1990","details":"watercolor on paper. 30×20 cm"},"el":{"title":"ΠΡΟΠΟΔΕΣ ΤΩΝ ΚΑΡΠΑΘΙΩΝ. 1990","details":"ακουαρέλα σε χαρτί. 30×20 εκ."},"ua":{"title":"ПЕРЕДГІР’Я КАРПАТ. 1990 р.","details":"папір, акварель. 30×20 см"}}},{"id":"44","size":[45,35],"px":[1661,1348],"captions":{"en":{"title":"THE PARTHENON ON THE ACROPOLIS. Athens. 1998","details":"watercolor on paper. 45×35 cm"},"el":{"title":"Ο ΠΑΡΘΕΝΩΝΑΣ ΣΤΗΝ ΑΚΡΟΠΟΛΗ. Αθήνα. 1998","details":"ακουαρέλα σε χαρτί. 45×35 εκ."},"ua":{"title":"ПАРТЕНОН НА АКРОПОЛІ. Атени. 1998 р.","details":"папір, акварель. 45×35 см"}}},{"id":"45","size":[32,22],"px":[3257,2195],"captions":{"en":{"title":"OLD BOATS. Kyiv. 1972","details":"watercolor on paper. 32×22 cm"},"el":{"title":"ΠΑΛΙΕΣ ΒΑΡΚΕΣ. Κίεβο. 1972","details":"ακουαρέλα σε χαρτί. 32×22 εκ."},"ua":{"title":"СТАРІ ЧОВНИ. Київ. 1972 р.","details":"папір, акварель. 32×22 см"}}},{"id":"46","size":[13,20],"px":[1536,2357],"captions":{"en":{"title":"CARPATHIAN MOTIF. 1990","details":"watercolor on paper. 13×20 cm"},"el":{"title":"ΚΑΡΠΑΘΙΚΟ ΜΟΤΙΒΟ. 1990","details":"ακουαρέλα σε χαρτί. 13×20 εκ."},"ua":{"title":"КАРПАТСЬКИЙ МОТИВ. 1990 р.","details":"папір, акварель. 13×20 см"}}},{"id":"47","size":[30,40],"px":[2489,3428],"captions":{"en":{"title":"GREEN HAYSTACK. 2017","details":"watercolor on paper. 30×40 cm"},"el":{"title":"ΠΡΑΣΙΝΗ ΘΗΜΩΝΙΑ. 2017","details":"ακουαρέλα σε χαρτί. 30×40 εκ."},"ua":{"title":"ЗЕЛЕНА КОПИЦЯ. 2017 р.","details":"папір, акварель. 30×40 см"}}},{"id":"48","size":[30,23],"px":[3469,2571],"captions":{"en":{"title":"A LVIV STREET. 1992","details":"watercolor on paper. 30×23 cm"},"el":{"title":"ΣΟΚΑΚΙ ΤΟΥ ΛΒΙΒ. 1992","details":"ακουαρέλα σε χαρτί. 30×23 εκ."},"ua":{"title":"ЛЬВІВСЬКА ВУЛИЧКА. 1992 р.","details":"папір, акварель. 30×23 см"}}},{"id":"49","size":[72,72],"px":[2186,2211],"captions":{"en":{"title":"STILL LIFE WITH POPPY HEADS. 2012","details":"oil on canvas. 72×72 cm"},"el":{"title":"ΝΕΚΡΗ ΦΥΣΗ ΜΕ ΚΩΔΙΕΣ ΠΑΠΑΡΟΥΝΑΣ. 2012","details":"λάδι σε καμβά. 72×72 εκ."},"ua":{"title":"НАТЮРМОРТ З МАКОВИННЯМ. 2012 р.","details":"полотно, олія. 72×72 см"}}},{"id":"51","size":[84,69],"px":[2104,1732],"captions":{"en":{"title":"FRUITS OF CRETE AGAINST THE SEA. 2010","details":"oil on canvas. 84×69 cm"},"el":{"title":"ΚΑΡΠΟΙ ΤΗΣ ΚΡΗΤΗΣ ΜΕ ΦΟΝΤΟ ΤΗ ΘΑΛΑΣΣΑ. 2010","details":"λάδι σε καμβά. 84×69 εκ."},"ua":{"title":"ПЛОДИ КРИТУ НА ТЛІ МОРЯ. 2010 р.","details":"полотно, олія. 84×69 см"}}},{"id":"55","size":[40,30],"px":[2213,1625],"captions":{"en":{"title":"DAWN. Crete. 2017","details":"watercolor on paper. 40×30 cm"},"el":{"title":"ΞΗΜΕΡΩΜΑ. Κρήτη. 2017","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"СВІТАНОК. Крит. 2017 р.","details":"папір, акварель. 40×30 см"}}},{"id":"50","size":[150,90],"px":[2694,1573],"captions":{"en":{"title":"FISHERMEN’S SHORE. Crete. 2012","details":"oil on canvas. 150×90 cm"},"el":{"title":"Η ΑΚΤΗ ΤΩΝ ΨΑΡΑΔΩΝ. Κρήτη. 2012","details":"λάδι σε καμβά. 150×90 εκ."},"ua":{"title":"РИБАЛЬСЬКИЙ БЕРЕГ. Крит. 2012 р.","details":"полотно, олія. 150×90 см"}}},{"id":"56","size":[60,60],"px":[1587,1586],"captions":{"en":{"title":"BOUQUET ON THE FLOOR. 2014","details":"oil on canvas. 60×60 cm"},"el":{"title":"ΑΝΘΟΔΕΣΜΗ ΣΤΟ ΠΑΤΩΜΑ. 2014","details":"λάδι σε καμβά. 60×60 εκ."},"ua":{"title":"БУКЕТ НА ПІДЛОЗІ. 2014 р.","details":"полотно, олія. 60×60 см"}}},{"id":"54","size":[40,30],"px":[2405,1834],"captions":{"en":{"title":"HOT SUMMER. Crete. 2017","details":"watercolor on paper. 40×30 cm"},"el":{"title":"ΚΑΥΤΟ ΚΑΛΟΚΑΙΡΙ. Κρήτη. 2017","details":"ακουαρέλα σε χαρτί. 40×30 εκ."},"ua":{"title":"СПЕКОТНЕ ЛІТО. Крит. 2017 р.","details":"папір, акварель. 40×30 см"}}},{"id":"52","size":[50,60],"px":[1396,1717],"captions":{"en":{"title":"LILIES. A bouquet for my daughter-in-law","details":"oil on canvas. 50×60 cm"},"el":{"title":"ΚΡΙΝΑ. Ανθοδέσμη για τη νύφη μου","details":"λάδι σε καμβά. 50×60 εκ."},"ua":{"title":"ЛІЛІЇ. Букет для невістки","details":"полотно, олія. 50×60 см"}}},{"id":"53","size":[35,44],"px":[1587,2059],"captions":{"en":{"title":"TWO FISH ON A NEWSPAPER. 1995","details":"oil on canvas. 35×44 cm"},"el":{"title":"ΔΥΟ ΨΑΡΙΑ ΣΕ ΕΦΗΜΕΡΙΔΑ. 1995","details":"λάδι σε καμβά. 35×44 εκ."},"ua":{"title":"ДВІ РИБИ НА ГАЗЕТІ. 1995 р.","details":"полотно, олія. 35×44 см"}}},{"id":"57","size":[30,40],"px":[704,1023],"captions":{"en":{"title":"THE CLIFF. Cretan study. 1994","details":"watercolor on paper. 30×40 cm"},"el":{"title":"Ο ΒΡΑΧΟΣ. Κρητική σπουδή. 1994","details":"ακουαρέλα σε χαρτί. 30×40 εκ."},"ua":{"title":"СКЕЛЯ. Критський етюд. 1994 р.","details":"папір, акварель. 30×40 см"}}},{"id":"58","size":[73,73],"px":[1920,1919],"captions":{"en":{"title":"STILL LIFE in retro style. 1993","details":"oil on canvas. 73×73 cm"},"el":{"title":"ΝΕΚΡΗ ΦΥΣΗ σε ρετρό ύφος. 1993","details":"λάδι σε καμβά. 73×73 εκ."},"ua":{"title":"НАТЮРМОРТ в стилі ретро. 1993 р.","details":"полотно, олія. 73×73 см"}}},{"id":"62","size":[40,40],"px":[1279,1280],"captions":{"en":{"title":"LAGOON 1. Crete. 2010","details":"oil on canvas. 40×40 cm"},"el":{"title":"ΛΙΜΝΟΘΑΛΑΣΣΑ 1. Κρήτη. 2010","details":"λάδι σε καμβά. 40×40 εκ."},"ua":{"title":"ЛАГУНА 1. Крит. 2010 р.","details":"полотно, олія. 40×40 см"}}},{"id":"63","size":[40,40],"px":[1280,1280],"captions":{"en":{"title":"LAGOON 2. Crete. 2010","details":"oil on canvas. 40×40 cm"},"el":{"title":"ΛΙΜΝΟΘΑΛΑΣΣΑ 2. Κρήτη. 2010","details":"λάδι σε καμβά. 40×40 εκ."},"ua":{"title":"ЛАГУНА 2. Крит. 2010 р.","details":"полотно, олія. 40×40 см"}}},{"id":"61","size":[20,30],"px":[969,1280],"captions":{"en":{"title":"HAYSTACKS IN THE MOUNTAINS. 2015","details":"sepia on paper. 20×30 cm"},"el":{"title":"ΘΗΜΩΝΙΕΣ ΣΤΑ ΒΟΥΝΑ. 2015","details":"σέπια σε χαρτί. 20×30 εκ."},"ua":{"title":"КОПИЦІ В ГОРАХ. 2015 р.","details":"папір, сепія. 20×30 см"}}},{"id":"64","size":[130,90],"px":[3115,2163],"captions":{"en":{"title":"OLIVE GROVE. 2019","details":"oil on canvas. 130×90 cm"},"el":{"title":"ΕΛΑΙΩΝΑΣ. 2019","details":"λάδι σε καμβά. 130×90 εκ."},"ua":{"title":"ОЛИВКОВИЙ ГАЙ. 2019 р.","details":"полотно, олія. 130×90 см"}}},{"id":"65","size":[40,50],"px":[4203,2760],"captions":{"en":{"title":"BEACH UNDER A LONELY TREE. 2019","details":"oil on canvas. 40×50 cm"},"el":{"title":"ΠΑΡΑΛΙΑ ΚΑΤΩ ΑΠΟ ΕΝΑ ΜΟΝΑΧΙΚΟ ΔΕΝΤΡΟ. 2019","details":"λάδι σε καμβά. 40×50 εκ."},"ua":{"title":"ПЛЯЖ ПІД САМОТНІМ ДЕРЕВОМ. 2019 р.","details":"полотно, олія. 40×50 см"}}}]}</script>
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Data, language, DOM
+// ---------------------------------------------------------------------------
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const params = new URLSearchParams(location.search);
+const LANG = ['en', 'el', 'ua'].includes(params.get('lang')) ? params.get('lang') : 'en';
+const T = (key) => DATA.strings[key][LANG];
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+const $ = (sel) => document.querySelector(sel);
+
+document.documentElement.lang = { en: 'en', el: 'el', ua: 'uk' }[LANG];
+document.title = `${DATA.name[LANG]} — ${T('title')}`;
+$('#brand').textContent = `${DATA.name[LANG]} — ${T('title')}`;
+$('#brand').href = `/${LANG}`;
+$('#help').textContent = TOUCH ? T('controlsTouch') : T('controls');
+
+const canvas = $('#gl');
+const gl = canvas.getContext('webgl2', { antialias: true, powerPreference: 'high-performance' });
+if (!gl) {
+  $('#help').textContent = T('noWebgl');
+  throw new Error('WebGL2 unavailable');
+}
+
+// ---------------------------------------------------------------------------
+// Floor plan. One cell is 0.5 m; everything outside the rooms and doorways is
+// solid wall, so the gallery is a closed network of rooms with no way out.
+// ---------------------------------------------------------------------------
+const CS = 0.5, GW = 56, GH = 44;
+const WALL_H = 3.6, EYE = 1.62, HANG = 1.5;
+
+// Rooms in the order paintings are hung: a loop A → B → C → G → F → E → D.
+const ROOMS = [
+  { x: 1, z: 1, w: 24, h: 16 },   // A  12 × 8 m, start room
+  { x: 26, z: 1, w: 16, h: 16 },  // B
+  { x: 43, z: 1, w: 12, h: 16 },  // C
+  { x: 39, z: 18, w: 16, h: 25 }, // G
+  { x: 18, z: 32, w: 20, h: 11 }, // F
+  { x: 18, z: 18, w: 20, h: 13 }, // E
+  { x: 1, z: 18, w: 16, h: 25 },  // D
+];
+const DOORS = [
+  { x: 25, z: 7, w: 1, h: 3 },  // A – B
+  { x: 42, z: 7, w: 1, h: 3 },  // B – C
+  { x: 11, z: 17, w: 3, h: 1 }, // A – D
+  { x: 29, z: 17, w: 3, h: 1 }, // B – E
+  { x: 46, z: 17, w: 3, h: 1 }, // C – G
+  { x: 17, z: 23, w: 1, h: 3 }, // D – E
+  { x: 26, z: 31, w: 3, h: 1 }, // E – F
+  { x: 38, z: 36, w: 1, h: 3 }, // F – G
+];
+
+const solid = new Uint8Array(GW * GH).fill(1);
+const cellRoom = new Int8Array(GW * GH).fill(-1);
+function carve(rect, room) {
+  for (let z = rect.z; z < rect.z + rect.h; z++)
+    for (let x = rect.x; x < rect.x + rect.w; x++) { solid[z * GW + x] = 0; cellRoom[z * GW + x] = room; }
+}
+ROOMS.forEach((r, i) => carve(r, i));
+DOORS.forEach((d) => {
+  d.room = ROOMS.findIndex((r) => d.x >= r.x - 1 && d.x + d.w <= r.x + r.w + 1 && d.z >= r.z - 1 && d.z + d.h <= r.z + r.h + 1);
+  carve(d, d.room);
+});
+const isSolid = (x, z) => {
+  const cx = Math.floor(x / CS), cz = Math.floor(z / CS);
+  return cx < 0 || cz < 0 || cx >= GW || cz >= GH || solid[cz * GW + cx] === 1;
+};
+const roomAt = (x, z) => {
+  const cx = Math.floor(x / CS), cz = Math.floor(z / CS);
+  return cx < 0 || cz < 0 || cx >= GW || cz >= GH ? -1 : cellRoom[cz * GW + cx];
+};
+
+// Ceiling lights on a grid of roughly 3.6 m per room.
+ROOMS.forEach((r) => {
+  const x0 = r.x * CS, z0 = r.z * CS, w = r.w * CS, d = r.h * CS;
+  const nx = Math.max(1, Math.round(w / 3.6)), nz = Math.max(1, Math.round(d / 3.6));
+  r.lights = [];
+  for (let i = 0; i < nx; i++)
+    for (let j = 0; j < nz; j++) r.lights.push([x0 + ((i + 0.5) * w) / nx, WALL_H - 0.08, z0 + ((j + 0.5) * d) / nz]);
+});
+
+// ---------------------------------------------------------------------------
+// Straight stretches of wall ("runs") to hang paintings on, clockwise per room
+// ---------------------------------------------------------------------------
+function wallRuns(r, roomIndex) {
+  const x0 = r.x * CS, x1 = (r.x + r.w) * CS, z0 = r.z * CS, z1 = (r.z + r.h) * CS;
+  // a door belongs to this wall only if it sits in the wall's row/column AND within the room's span
+  const alongX = (d) => d.x < r.x + r.w && d.x + d.w > r.x;
+  const alongZ = (d) => d.z < r.z + r.h && d.z + d.h > r.z;
+  const sides = [
+    { start: [x0, z0], dir: [1, 0], n: [0, 0, 1], len: x1 - x0, doors: DOORS.filter((d) => d.z + d.h === r.z && alongX(d)).map((d) => [d.x * CS - x0, (d.x + d.w) * CS - x0]) },
+    { start: [x1, z0], dir: [0, 1], n: [-1, 0, 0], len: z1 - z0, doors: DOORS.filter((d) => d.x === r.x + r.w && alongZ(d)).map((d) => [d.z * CS - z0, (d.z + d.h) * CS - z0]) },
+    { start: [x1, z1], dir: [-1, 0], n: [0, 0, -1], len: x1 - x0, doors: DOORS.filter((d) => d.z === r.z + r.h && alongX(d)).map((d) => [x1 - (d.x + d.w) * CS, x1 - d.x * CS]) },
+    { start: [x0, z1], dir: [0, -1], n: [1, 0, 0], len: z1 - z0, doors: DOORS.filter((d) => d.x + d.w === r.x && alongZ(d)).map((d) => [z1 - (d.z + d.h) * CS, z1 - d.z * CS]) },
+  ];
+  const runs = [];
+  for (const s of sides) {
+    const cuts = s.doors.sort((a, b) => a[0] - b[0]);
+    let t = 0;
+    for (const [a, b] of cuts.concat([[s.len, s.len]])) {
+      if (a - t >= 1.0) runs.push({ room: roomIndex, start: [s.start[0] + s.dir[0] * t, s.start[1] + s.dir[1] * t], dir: s.dir, n: s.n, len: a - t });
+      t = b;
+    }
+  }
+  return runs;
+}
+const RUNS = ROOMS.flatMap(wallRuns);
+
+// ---------------------------------------------------------------------------
+// Paintings: polaroid-style frames. Sizes keep the catalogue proportions but
+// are scaled up about 2× (longer side between 1.1 m and 2.4 m) so that small
+// watercolours still read from across a 3.6 m-high room.
+// ---------------------------------------------------------------------------
+const PAINTINGS = DATA.pictures.map((p) => {
+  const aspect = p.px[0] / p.px[1];
+  const area = (p.size[0] / 100) * (p.size[1] / 100);
+  let w = Math.sqrt(area * aspect), h = w / aspect;
+  const longest = Math.max(w, h);
+  const factor = Math.min(2.4, Math.max(1.1, longest * 2)) / longest;
+  w *= factor; h *= factor;
+  const border = Math.min(0.1, Math.max(0.04, 0.03 + 0.04 * w));
+  return { ...p, w, h, border, bottom: border * 2.4 + 0.05, fw: w + 2 * border, fh: h + border + border * 2.4 + 0.05, caption: p.captions[LANG] };
+});
+
+// Hand paintings along the runs in catalogue order, spread in proportion to
+// wall length so every room gets its share.
+{
+  const MARGIN = 0.35;
+  const total = RUNS.reduce((s, r) => s + r.len, 0);
+  let next = 0, carry = 0;
+  for (const run of RUNS) {
+    const share = (PAINTINGS.length * run.len) / total + carry;
+    let count = Math.min(Math.round(share), PAINTINGS.length - next);
+    const widthOf = (k) => PAINTINGS.slice(next, next + k).reduce((s, p) => s + p.fw, 0);
+    while (count > 0 && widthOf(count) + (count + 1) * MARGIN > run.len) count--;
+    carry = share - count;
+    const group = PAINTINGS.slice(next, next + count);
+    const spacing = (run.len - widthOf(count)) / (count + 1);
+    let t = spacing;
+    for (const p of group) {
+      t += p.fw / 2;
+      p.room = run.room;
+      p.D = [run.dir[0], 0, run.dir[1]];
+      p.N = run.n;
+      let cy = HANG;
+      cy = Math.max(cy, 0.45 + p.bottom + p.h / 2);
+      cy = Math.min(cy, WALL_H - 0.4 - p.border - p.h / 2);
+      p.center = [run.start[0] + run.dir[0] * t, cy, run.start[1] + run.dir[1] * t];
+      t += p.fw / 2 + spacing;
+    }
+    next += count;
+  }
+  // Anything left over (should not happen) goes on the longest run's end.
+  if (next < PAINTINGS.length) console.warn(`${PAINTINGS.length - next} paintings could not be hung`);
+}
+
+// ---------------------------------------------------------------------------
+// Small vector / matrix helpers
+// ---------------------------------------------------------------------------
+const v3 = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  scale: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len: (a) => Math.hypot(a[0], a[1], a[2]),
+  norm: (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+function perspective(fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+  return new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, 2 * far * near * nf, 0]);
+}
+function lookAt(eye, target, up) {
+  const z = v3.norm(v3.sub(eye, target)), x = v3.norm(v3.cross(up, z)), y = v3.cross(z, x);
+  return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -v3.dot(x, eye), -v3.dot(y, eye), -v3.dot(z, eye), 1]);
+}
+
+// ---------------------------------------------------------------------------
+// Shaders
+// ---------------------------------------------------------------------------
+const VS = `#version 300 es
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNor;
+layout(location = 2) in vec2 aUV;
+uniform mat4 uProj, uView;
+out vec3 vPos; out vec3 vNor; out vec2 vUV;
+void main() { vPos = aPos; vNor = aNor; vUV = aUV; gl_Position = uProj * uView * vec4(aPos, 1.0); }`;
+
+const FS = `#version 300 es
+precision highp float;
+in vec3 vPos; in vec3 vNor; in vec2 vUV;
+uniform sampler2D uTex;
+uniform int uUseTex, uMaterial, uLightCount;
+uniform vec3 uColor, uAmbient, uCamPos, uFogColor, uLightColor;
+uniform float uUnlit, uAlpha, uFogDensity, uLightPower;
+uniform vec3 uLightPos[8];
+out vec4 outColor;
+void main() {
+  vec4 base = uUseTex == 1 ? texture(uTex, vUV) : vec4(1.0);
+  vec3 albedo = base.rgb * uColor;
+  // walls: dark skirting board and a faint cornice line
+  if (uMaterial == 1) {
+    if (vPos.y < 0.12) albedo *= 0.32;
+    else if (vPos.y < 0.135) albedo *= 0.6;
+    if (vPos.y > ${WALL_H} - 0.06) albedo *= 0.9;
+  }
+  vec3 n = normalize(vNor);
+  vec3 lit = albedo * uAmbient;
+  for (int i = 0; i < 8; i++) {
+    if (i >= uLightCount) break;
+    vec3 L = uLightPos[i] - vPos;
+    float d = length(L);
+    L /= d;
+    float ndl = max(dot(n, L), 0.0);
+    float att = uLightPower / (1.0 + 0.3 * d * d);
+    float spot = 0.3 + 0.7 * smoothstep(0.0, 0.75, L.y);
+    lit += albedo * uLightColor * ndl * att * spot;
+  }
+  vec3 col = mix(lit, albedo, uUnlit);
+  col = col / (1.0 + 0.12 * col);
+  float fog = 1.0 - exp(-length(uCamPos - vPos) * uFogDensity);
+  col = mix(col, uFogColor, fog);
+  outColor = vec4(col, base.a * uAlpha);
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const U = {};
+for (const name of ['uProj', 'uView', 'uTex', 'uUseTex', 'uMaterial', 'uLightCount', 'uColor', 'uAmbient', 'uCamPos', 'uFogColor', 'uLightColor', 'uUnlit', 'uAlpha', 'uFogDensity', 'uLightPower', 'uLightPos[0]'])
+  U[name] = gl.getUniformLocation(prog, name);
+
+// ---------------------------------------------------------------------------
+// Geometry
+// ---------------------------------------------------------------------------
+class Mesh {
+  constructor() { this.data = []; this.count = 0; }
+  quad(a, b, c, d, n, uv = [[0, 0], [1, 0], [1, 1], [0, 1]]) {
+    const push = (p, t) => this.data.push(p[0], p[1], p[2], n[0], n[1], n[2], t[0], t[1]);
+    push(a, uv[0]); push(b, uv[1]); push(c, uv[2]);
+    push(a, uv[0]); push(c, uv[2]); push(d, uv[3]);
+    this.count += 6;
+  }
+  upload() {
+    if (!this.count) return null;
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.data), gl.STATIC_DRAW);
+    for (const [loc, size, offset] of [[0, 3, 0], [1, 3, 12], [2, 2, 24]]) {
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 32, offset);
+    }
+    gl.bindVertexArray(null);
+    this.data = null;
+    return { vao, count: this.count };
+  }
+}
+const rooms = ROOMS.map((r) => ({ def: r, walls: new Mesh(), floor: new Mesh(), ceiling: new Mesh(), frames: new Mesh(), shadows: new Mesh(), lamps: new Mesh() }));
+
+// floor + ceiling per room and doorway
+function slab(mesh, rect, y, n) {
+  const x0 = rect.x * CS, x1 = (rect.x + rect.w) * CS, z0 = rect.z * CS, z1 = (rect.z + rect.h) * CS;
+  mesh.quad([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], n, [[x0 / 2, z0 / 2], [x1 / 2, z0 / 2], [x1 / 2, z1 / 2], [x0 / 2, z1 / 2]]);
+}
+ROOMS.forEach((r, i) => { slab(rooms[i].floor, r, 0, [0, 1, 0]); slab(rooms[i].ceiling, r, WALL_H, [0, -1, 0]); });
+DOORS.forEach((d) => { slab(rooms[d.room].floor, d, 0, [0, 1, 0]); slab(rooms[d.room].ceiling, d, WALL_H, [0, -1, 0]); });
+
+// walls: one face for every floor cell edge that borders solid
+for (let cz = 0; cz < GH; cz++)
+  for (let cx = 0; cx < GW; cx++) {
+    if (solid[cz * GW + cx]) continue;
+    const m = rooms[cellRoom[cz * GW + cx]].walls;
+    const x0 = cx * CS, x1 = x0 + CS, z0 = cz * CS, z1 = z0 + CS, H = WALL_H;
+    const uvz = [[z0 / 2, 0], [z1 / 2, 0], [z1 / 2, H / 2], [z0 / 2, H / 2]];
+    const uvx = [[x0 / 2, 0], [x1 / 2, 0], [x1 / 2, H / 2], [x0 / 2, H / 2]];
+    if (cx === 0 || solid[cz * GW + cx - 1]) m.quad([x0, 0, z0], [x0, 0, z1], [x0, H, z1], [x0, H, z0], [1, 0, 0], uvz);
+    if (cx === GW - 1 || solid[cz * GW + cx + 1]) m.quad([x1, 0, z0], [x1, 0, z1], [x1, H, z1], [x1, H, z0], [-1, 0, 0], uvz);
+    if (cz === 0 || solid[(cz - 1) * GW + cx]) m.quad([x0, 0, z0], [x1, 0, z0], [x1, H, z0], [x0, H, z0], [0, 0, 1], uvx);
+    if (cz === GH - 1 || solid[(cz + 1) * GW + cx]) m.quad([x0, 0, z1], [x1, 0, z1], [x1, H, z1], [x0, H, z1], [0, 0, -1], uvx);
+  }
+
+// ceiling lamps
+ROOMS.forEach((r, i) => {
+  for (const [x, , z] of r.lights) {
+    const y = WALL_H - 0.005, s = 0.22;
+    rooms[i].lamps.quad([x - s, y, z - s], [x + s, y, z - s], [x + s, y, z + s], [x - s, y, z + s], [0, -1, 0]);
+  }
+});
+
+// frames, shadows, picture and label quads
+const DEPTH = 0.035;
+for (const p of PAINTINGS) {
+  const up = [0, 1, 0];
+  const P = (u, v, d) => v3.add(v3.add(v3.add(p.center, v3.scale(p.D, u)), v3.scale(up, v)), v3.scale(p.N, d));
+  const l = -(p.w / 2 + p.border), r = p.w / 2 + p.border, t = p.h / 2 + p.border, b = -(p.h / 2 + p.bottom);
+  p.extent = { l, r, t, b };
+  const F = rooms[p.room].frames;
+  F.quad(P(l, b, DEPTH), P(r, b, DEPTH), P(r, t, DEPTH), P(l, t, DEPTH), p.N);
+  F.quad(P(l, t, 0), P(r, t, 0), P(r, t, DEPTH), P(l, t, DEPTH), up);
+  F.quad(P(l, b, 0), P(r, b, 0), P(r, b, DEPTH), P(l, b, DEPTH), [0, -1, 0]);
+  F.quad(P(l, b, 0), P(l, t, 0), P(l, t, DEPTH), P(l, b, DEPTH), v3.scale(p.D, -1));
+  F.quad(P(r, b, 0), P(r, t, 0), P(r, t, DEPTH), P(r, b, DEPTH), p.D);
+  const S = rooms[p.room].shadows, m = 0.12, ox = 0.03, oy = -0.07;
+  S.quad(P(l - m + ox, b - m + oy, 0.003), P(r + m + ox, b - m + oy, 0.003), P(r + m + ox, t + m + oy, 0.003), P(l - m + ox, t + m + oy, 0.003), p.N);
+  const pic = new Mesh(), hw = p.w / 2, hh = p.h / 2, d = DEPTH + 0.002;
+  pic.quad(P(-hw, -hh, d), P(hw, -hh, d), P(hw, hh, d), P(-hw, hh, d), p.N);
+  p.mesh = pic.upload();
+  const lh = Math.min(p.bottom * 0.7, (p.fw - 0.04) / 4), lw = lh * 4, vc = -hh - p.bottom / 2;
+  const label = new Mesh();
+  label.quad(P(-lw / 2, vc - lh / 2, d), P(lw / 2, vc - lh / 2, d), P(lw / 2, vc + lh / 2, d), P(-lw / 2, vc + lh / 2, d), p.N);
+  p.labelMesh = label.upload();
+}
+for (const room of rooms) for (const k of ['walls', 'floor', 'ceiling', 'frames', 'shadows', 'lamps']) room[k] = room[k].upload();
+
+// ---------------------------------------------------------------------------
+// Textures (procedural wood, plaster, shadow; labels; thumbnails; full images)
+// ---------------------------------------------------------------------------
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
+function makeTexture(src, { repeat = false, mipmap = true } = {}) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  if (mipmap) {
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  } else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  return tex;
+}
+let seed = 7;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+
+function woodCanvas() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d'), rows = 8, ph = 64;
+  for (let r = 0; r < rows; r++) {
+    let x = -Math.floor(rnd() * 300);
+    while (x < 512) {
+      const len = 180 + rnd() * 260, tone = 0.8 + rnd() * 0.35;
+      g.fillStyle = `rgb(${Math.min(255, 158 * tone) | 0},${Math.min(255, 118 * tone) | 0},${Math.min(255, 78 * tone) | 0})`;
+      g.fillRect(x, r * ph, len, ph);
+      for (let k = 0; k < 16; k++) {
+        g.strokeStyle = `rgba(55,32,14,${0.04 + rnd() * 0.1})`; g.lineWidth = 0.6 + rnd() * 1.6;
+        const y = r * ph + rnd() * ph;
+        g.beginPath(); g.moveTo(x, y);
+        g.bezierCurveTo(x + len * 0.3, y + (rnd() - 0.5) * 10, x + len * 0.6, y + (rnd() - 0.5) * 10, x + len, y + (rnd() - 0.5) * 6);
+        g.stroke();
+      }
+      g.fillStyle = 'rgba(35,20,8,.55)'; g.fillRect(x + len - 1.5, r * ph, 2, ph);
+      x += len;
+    }
+    g.fillStyle = 'rgba(35,20,8,.5)'; g.fillRect(0, r * ph, 512, 1.5);
+  }
+  return c;
+}
+function plasterCanvas(base) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), img = g.createImageData(256, 256);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const n = (rnd() - 0.5) * 14;
+    img.data[i] = base[0] + n; img.data[i + 1] = base[1] + n; img.data[i + 2] = base[2] + n; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+function shadowCanvas() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), img = g.createImageData(128, 128);
+  for (let y = 0; y < 128; y++)
+    for (let x = 0; x < 128; x++) {
+      const e = Math.max(Math.abs(x - 63.5), Math.abs(y - 63.5)) / 63.5;
+      const a = 1 - Math.min(1, Math.max(0, (e - 0.55) / 0.45));
+      const i = (y * 128 + x) * 4;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = 255 * a * a;
+    }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+function labelCanvas(p) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f7f3ea'; g.fillRect(0, 0, 512, 128);
+  g.fillStyle = '#1f1c18'; g.textBaseline = 'middle';
+  let size = 40;
+  do { g.font = `italic ${size}px Georgia, serif`; size -= 2; } while (g.measureText(p.caption.title).width > 470 && size > 16);
+  g.fillText(p.caption.title, 20, 44);
+  g.font = '19px Menlo, monospace'; g.fillStyle = '#8a8173';
+  g.fillText(p.caption.details.toUpperCase(), 20, 94);
+  g.fillStyle = '#b2432c'; g.textAlign = 'right';
+  g.fillText(`№${p.id}`, 492, 94);
+  return c;
+}
+const TEX = {
+  wood: makeTexture(woodCanvas(), { repeat: true }),
+  plaster: makeTexture(plasterCanvas([226, 218, 203]), { repeat: true }),
+  ceiling: makeTexture(plasterCanvas([236, 231, 222]), { repeat: true }),
+  shadow: makeTexture(shadowCanvas(), { mipmap: false }),
+  white: makeTexture(plasterCanvas([255, 255, 255]), { mipmap: false }),
+};
+for (const p of PAINTINGS) p.labelTex = makeTexture(labelCanvas(p));
+
+// thumbnails first (small, usually cached from the main site), full images on approach
+let thumbsLoaded = 0;
+function loadThumb(p) {
+  const img = new Image();
+  img.onload = () => { p.thumb = makeTexture(img); thumbsLoaded++; updateProgress(); };
+  img.onerror = () => { thumbsLoaded++; updateProgress(); };
+  img.src = `/thumbs/${p.id}.JPG`;
+}
+PAINTINGS.forEach(loadThumb);
+function updateProgress() {
+  $('#progress').textContent = thumbsLoaded < PAINTINGS.length ? `${T('loading')} ${thumbsLoaded} / ${PAINTINGS.length}` : '';
+}
+updateProgress();
+
+const MAX_FULL = 6, MAX_FULL_PX = 2048;
+let fullLoading = 0;
+function loadFull(p) {
+  if (p.full || p.fullLoading || fullLoading >= 2) return;
+  p.fullLoading = true; fullLoading++;
+  const img = new Image();
+  img.onload = () => {
+    const s = Math.min(1, MAX_FULL_PX / Math.max(img.width, img.height));
+    let src = img;
+    if (s < 1) {
+      src = document.createElement('canvas');
+      src.width = Math.round(img.width * s); src.height = Math.round(img.height * s);
+      src.getContext('2d').drawImage(img, 0, 0, src.width, src.height);
+    }
+    p.full = makeTexture(src);
+    p.fullLoading = false; fullLoading--;
+  };
+  img.onerror = () => { p.fullLoading = false; fullLoading--; };
+  img.src = `/pictures/${p.id}.JPG`;
+}
+function manageFullImages(pos, forward) {
+  const near = PAINTINGS.filter((p) => !p.full).map((p) => ({ p, d: v3.len(v3.sub(p.center, pos)) }))
+    .filter(({ p, d }) => d < 3.5 && v3.dot(forward, v3.sub(p.center, pos)) > 0 || focus.target === p)
+    .sort((a, b) => a.d - b.d);
+  for (const { p } of near) loadFull(p);
+  const loaded = PAINTINGS.filter((p) => p.full && p !== focus.target).map((p) => ({ p, d: v3.len(v3.sub(p.center, pos)) })).sort((a, b) => b.d - a.d);
+  while (loaded.length > MAX_FULL) { const { p } = loaded.shift(); gl.deleteTexture(p.full); p.full = null; }
+}
+
+// ---------------------------------------------------------------------------
+// Camera, movement, focus
+// ---------------------------------------------------------------------------
+const startRoom = ROOMS[0];
+const cam = { pos: [(startRoom.x + startRoom.w / 2) * CS, EYE, (startRoom.z + startRoom.h / 2 + 1) * CS], yaw: 0, pitch: 0, fov: 62 };
+const keys = new Set();
+const focus = { target: null, anim: null, baseFov: 62 };
+let bob = 0;
+
+const forwardOf = (yaw, pitch) => [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
+function canStand(x, z) {
+  const r = 0.3;
+  for (const [dx, dz] of [[-r, -r], [r, -r], [-r, r], [r, r], [0, -r], [0, r], [-r, 0], [r, 0]]) if (isSolid(x + dx, z + dz)) return false;
+  return true;
+}
+function pick(maxDist) {
+  const origin = cam.pos, dir = forwardOf(cam.yaw, cam.pitch);
+  let best = null, bestT = maxDist;
+  for (const p of PAINTINGS) {
+    const denom = v3.dot(dir, p.N);
+    if (denom >= -1e-6) continue;
+    const t = v3.dot(v3.sub(p.center, origin), p.N) / denom;
+    if (t <= 0 || t >= bestT) continue;
+    const rel = v3.sub(v3.add(origin, v3.scale(dir, t)), p.center);
+    const u = v3.dot(rel, p.D), v = rel[1];
+    if (u < p.extent.l || u > p.extent.r || v < p.extent.b || v > p.extent.t) continue;
+    best = p; bestT = t;
+  }
+  return best;
+}
+function focusOn(p) {
+  const aspect = canvas.width / canvas.height, fovy = (cam.fov * Math.PI) / 180;
+  const fovx = 2 * Math.atan(Math.tan(fovy / 2) * aspect);
+  let dist = Math.max(p.fh / (2 * Math.tan(fovy / 2)), p.fw / (2 * Math.tan(fovx / 2))) / 0.78;
+  dist = Math.min(6, Math.max(0.55, dist));
+  // walk out from the wall until the spot is free or the distance is reached
+  let pos = null;
+  for (let d = 0.45; d <= dist; d += 0.05) {
+    const q = v3.add(p.center, v3.scale(p.N, d));
+    if (!canStand(q[0], q[2])) break;
+    pos = [q[0], EYE, q[2]];
+  }
+  if (!pos) return;
+  const to = v3.sub(p.center, pos);
+  const yaw = Math.atan2(to[0], -to[2]), pitch = Math.atan2(to[1], Math.hypot(to[0], to[2]));
+  focus.target = p;
+  focus.anim = { t: 0, from: { pos: cam.pos.slice(), yaw: cam.yaw, pitch: cam.pitch }, to: { pos, yaw, pitch } };
+  // choose the shortest turn
+  while (focus.anim.to.yaw - focus.anim.from.yaw > Math.PI) focus.anim.to.yaw -= 2 * Math.PI;
+  while (focus.anim.to.yaw - focus.anim.from.yaw < -Math.PI) focus.anim.to.yaw += 2 * Math.PI;
+  loadFull(p);
+}
+// step back: stay where we are, level the view again
+function exitFocus() {
+  if (!focus.target) return;
+  focus.target = null;
+  cam.fov = focus.baseFov;
+  focus.anim = { t: 0.3, from: { pos: cam.pos.slice(), yaw: cam.yaw, pitch: cam.pitch }, to: { pos: cam.pos.slice(), yaw: cam.yaw, pitch: 0 } };
+}
+function act() {
+  const hit = pick(focus.target ? 12 : 4.5);
+  if (focus.target) { if (hit && hit !== focus.target) focusOn(hit); else exitFocus(); }
+  else if (hit) focusOn(hit);
+}
+
+function update(dt) {
+  if (focus.anim) {
+    const a = focus.anim; a.t = Math.min(1, a.t + dt / 0.7);
+    const e = 1 - Math.pow(1 - a.t, 3);
+    cam.pos = [0, 1, 2].map((i) => a.from.pos[i] + (a.to.pos[i] - a.from.pos[i]) * e);
+    cam.yaw = a.from.yaw + (a.to.yaw - a.from.yaw) * e;
+    cam.pitch = a.from.pitch + (a.to.pitch - a.from.pitch) * e;
+    if (a.t >= 1) focus.anim = null;
+    return;
+  }
+  let turn = 0, walk = 0;
+  if (keys.has('ArrowLeft')) turn -= 1;
+  if (keys.has('ArrowRight')) turn += 1;
+  if (keys.has('ArrowUp')) walk += 1;
+  if (keys.has('ArrowDown')) walk -= 1;
+  if (drag) { turn += drag.turn; walk += drag.walk; }
+  if (focus.target) {
+    // while looking closer: up/down zoom, left/right step back and turn
+    if (walk) cam.fov = Math.max(18, Math.min(focus.baseFov, cam.fov - walk * 40 * dt));
+    if (turn) exitFocus();
+    return;
+  }
+  if (turn) cam.yaw += turn * 1.7 * dt;
+  if (walk) {
+    const speed = 2.3 * Math.min(1, Math.abs(walk)) * Math.sign(walk);
+    const nx = cam.pos[0] + Math.sin(cam.yaw) * speed * dt, nz = cam.pos[2] - Math.cos(cam.yaw) * speed * dt;
+    if (canStand(nx, cam.pos[2])) cam.pos[0] = nx;
+    if (canStand(cam.pos[0], nz)) cam.pos[2] = nz;
+    bob += dt * Math.abs(speed) * 2.6;
+  }
+  cam.pos[1] = EYE + Math.sin(bob) * 0.018;
+}
+
+// ---------------------------------------------------------------------------
+// Input: arrows on the keyboard; one finger on touch screens
+// ---------------------------------------------------------------------------
+const help = $('#help');
+let helpDismissed = false;
+const helpTimer = setTimeout(dismissHelp, 12000);
+function dismissHelp() { clearTimeout(helpTimer); helpDismissed = true; }
+
+document.addEventListener('keydown', (e) => {
+  if (e.code.startsWith('Arrow')) { e.preventDefault(); dismissHelp(); }
+  if (e.code === 'KeyM') $('#map').classList.toggle('hidden');
+  if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); dismissHelp(); act(); }
+  if (e.code === 'Escape') exitFocus();
+  keys.add(e.code);
+});
+document.addEventListener('keyup', (e) => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+
+// touch: horizontal drag turns, vertical drag walks (like a joystick centred
+// where the finger landed); a short tap looks closer / steps back
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch' || drag) return;
+  try { canvas.setPointerCapture(e.pointerId); } catch {}
+  drag = { id: e.pointerId, x: e.clientX, sx: e.clientX, sy: e.clientY, t: performance.now(), turn: 0, walk: 0, moved: false };
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x;
+  drag.x = e.clientX;
+  if (!focus.anim) cam.yaw += dx * 0.006;
+  drag.walk = Math.max(-1, Math.min(1, (drag.sy - e.clientY) / 70));
+  if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 10) { drag.moved = true; dismissHelp(); }
+});
+const endTouch = (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved && performance.now() - drag.t < 350) { dismissHelp(); act(); }
+  drag = null;
+};
+canvas.addEventListener('pointerup', endTouch);
+canvas.addEventListener('pointercancel', endTouch);
+
+// ---------------------------------------------------------------------------
+// Minimap
+// ---------------------------------------------------------------------------
+const map = $('#map'), MS = 3;
+map.width = GW * MS; map.height = GH * MS;
+map.style.width = `${GW * MS}px`; map.style.height = `${GH * MS}px`;
+const mapStatic = document.createElement('canvas');
+mapStatic.width = map.width; mapStatic.height = map.height;
+{
+  const g = mapStatic.getContext('2d');
+  g.fillStyle = 'rgba(242,237,227,.22)';
+  for (let z = 0; z < GH; z++) for (let x = 0; x < GW; x++) if (!solid[z * GW + x]) g.fillRect(x * MS, z * MS, MS, MS);
+  g.fillStyle = '#b2432c';
+  for (const p of PAINTINGS) {
+    const x = p.center[0] / CS * MS, z = p.center[2] / CS * MS, hw = Math.max(1.5, (p.fw / CS) * MS / 2);
+    if (p.D[0] !== 0) g.fillRect(x - hw, z - 1 + p.N[2] * 0.5, hw * 2, 1.5);
+    else g.fillRect(x - 1 + p.N[0] * 0.5, z - hw, 1.5, hw * 2);
+  }
+}
+function drawMap() {
+  const g = map.getContext('2d');
+  g.clearRect(0, 0, map.width, map.height);
+  g.drawImage(mapStatic, 0, 0);
+  const x = cam.pos[0] / CS * MS, z = cam.pos[2] / CS * MS;
+  g.strokeStyle = '#f2ede3'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(x, z); g.lineTo(x + Math.sin(cam.yaw) * 9, z - Math.cos(cam.yaw) * 9); g.stroke();
+  g.fillStyle = '#f2ede3'; g.beginPath(); g.arc(x, z, 2.5, 0, Math.PI * 2); g.fill();
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+gl.enable(gl.DEPTH_TEST);
+gl.clearColor(0.1, 0.085, 0.075, 1);
+gl.uniform1i(U.uTex, 0);
+gl.uniform3f(U.uAmbient, 0.58, 0.57, 0.55);
+gl.uniform3f(U.uLightColor, 1.0, 0.94, 0.84);
+gl.uniform1f(U.uLightPower, 2.6);
+gl.uniform3f(U.uFogColor, 0.1, 0.085, 0.075);
+gl.uniform1f(U.uFogDensity, 0.028);
+
+function resize() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+}
+function draw(mesh, { tex = null, color = [1, 1, 1], unlit = 0, material = 0, alpha = 1 } = {}) {
+  if (!mesh) return;
+  gl.bindTexture(gl.TEXTURE_2D, tex || TEX.white);
+  gl.uniform1i(U.uUseTex, tex ? 1 : 0);
+  gl.uniform3fv(U.uColor, color);
+  gl.uniform1f(U.uUnlit, unlit);
+  gl.uniform1i(U.uMaterial, material);
+  gl.uniform1f(U.uAlpha, alpha);
+  gl.bindVertexArray(mesh.vao);
+  gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+}
+function setLights(room) {
+  const flat = new Float32Array(24);
+  room.lights.forEach((l, i) => flat.set(l, i * 3));
+  gl.uniform3fv(U['uLightPos[0]'], flat);
+  gl.uniform1i(U.uLightCount, room.lights.length);
+}
+
+const captionEl = $('#caption');
+let shownCaption = null;
+function updateHud() {
+  const target = focus.target || pick(4.5);
+  $('#crosshair').classList.toggle('hot', !!target && !focus.target);
+  $('#crosshair').classList.toggle('hidden', !!focus.target);
+  if (target !== shownCaption) {
+    shownCaption = target;
+    captionEl.classList.toggle('show', !!target);
+    if (target) {
+      captionEl.querySelector('.title').textContent = target.caption.title;
+      captionEl.querySelector('.details').innerHTML = '';
+      captionEl.querySelector('.details').append(target.caption.details, Object.assign(document.createElement('span'), { className: 'num', textContent: `№${target.id}` }));
+    }
+  }
+  if (target) captionEl.querySelector('.hint').textContent = focus.target ? T(TOUCH ? 'stepBackTouch' : 'stepBack') : T(TOUCH ? 'lookCloserTouch' : 'lookCloser');
+  help.classList.toggle('hidden', helpDismissed || !!target);
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  resize();
+  update(dt);
+  const forward = forwardOf(cam.yaw, cam.pitch);
+  manageFullImages(cam.pos, forward);
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.BLEND);
+  gl.depthMask(true);
+  gl.uniformMatrix4fv(U.uProj, false, perspective((cam.fov * Math.PI) / 180, canvas.width / canvas.height, 0.05, 80));
+  gl.uniformMatrix4fv(U.uView, false, lookAt(cam.pos, v3.add(cam.pos, forward), [0, 1, 0]));
+  gl.uniform3fv(U.uCamPos, cam.pos);
+
+  rooms.forEach((room, i) => {
+    setLights(room.def);
+    draw(room.floor, { tex: TEX.wood });
+    draw(room.ceiling, { tex: TEX.ceiling, color: [0.9, 0.89, 0.87] });
+    draw(room.walls, { tex: TEX.plaster, material: 1 });
+    draw(room.frames, { color: [0.985, 0.97, 0.94] });
+    draw(room.lamps, { color: [1, 0.97, 0.9], unlit: 1 });
+    for (const p of PAINTINGS) {
+      if (p.room !== i) continue;
+      const tex = p.full || p.thumb;
+      draw(p.mesh, tex ? { tex, unlit: 0.55 } : { color: [0.82, 0.78, 0.7] });
+      draw(p.labelMesh, { tex: p.labelTex });
+    }
+  });
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  for (const room of rooms) draw(room.shadows, { tex: TEX.shadow, color: [0, 0, 0], unlit: 1, alpha: 0.38 });
+
+  updateHud();
+  drawMap();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
